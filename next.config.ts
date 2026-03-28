@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   /* config options here */
 
   images: {
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       {
         protocol: "https",
@@ -15,7 +18,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "placehold.co",
+        hostname: "dummyimage.com",
       },
       {
         protocol: "https",

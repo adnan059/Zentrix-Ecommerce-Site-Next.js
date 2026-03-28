@@ -108,7 +108,7 @@ const productSchema = new Schema<IProduct>(
   { timestamps: true },
 );
 
-productSchema.index({ slug: 1 }, { unique: true });
+//productSchema.index({ slug: 1 }, { unique: true });
 productSchema.index({ vendorId: 1, status: 1 });
 productSchema.index({ categoryId: 1, status: 1 });
 productSchema.index({ status: 1, isFeatured: 1 });
