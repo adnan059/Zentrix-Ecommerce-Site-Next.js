@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IProduct } from "@/lib/db/models/product.model";
 import { Star } from "lucide-react";
 import Image from "next/image";

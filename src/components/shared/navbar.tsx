@@ -4,12 +4,6 @@ import { ICategory } from "@/lib/db/models/category.model";
 import { Cpu, Menu, ShoppingCart, User } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-
-interface INavbarProps {
-  categories: ICategory[];
-}
-
-import React from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +13,11 @@ import {
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { logoutAction } from "@/lib/actions/auth.actions";
+import SearchBar from "./search-bar";
+
+interface INavbarProps {
+  categories: ICategory[];
+}
 
 const Navbar = ({ categories }: INavbarProps) => {
   const { data: session } = useSession();
@@ -26,22 +25,30 @@ const Navbar = ({ categories }: INavbarProps) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-bold text-xl shrink-0"
+          >
             <Cpu className="w-6 h-6 text-blue-600" />
-            <span>Zentrix</span>
+            <span className="hidden sm:block">Zentrix</span>
           </Link>
 
-          {/* Category nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Search bar */}
+          <div className="flex-1 max-w-md">
+            <SearchBar />
+          </div>
+
+          {/* Category nav — desktop only */}
+          <nav className="hidden lg:flex items-center gap-1 shrink-0">
             <Link
               href="/products"
               className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
             >
-              All Products
+              All
             </Link>
-            {categories.slice(0, 5).map((cat) => (
+            {categories.slice(0, 4).map((cat) => (
               <Link
                 key={cat.slug}
                 href={`/category/${cat.slug}`}
@@ -50,7 +57,7 @@ const Navbar = ({ categories }: INavbarProps) => {
                 {cat.name}
               </Link>
             ))}
-            {categories.length > 5 && (
+            {categories.length > 4 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -58,7 +65,7 @@ const Navbar = ({ categories }: INavbarProps) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {categories.slice(5).map((cat) => (
+                  {categories.slice(4).map((cat) => (
                     <DropdownMenuItem key={cat.slug} asChild>
                       <Link href={`/category/${cat.slug}`}>{cat.name}</Link>
                     </DropdownMenuItem>
@@ -69,9 +76,9 @@ const Navbar = ({ categories }: INavbarProps) => {
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-2">
-            <Link href={"/cart"}>
-              <Button variant={"ghost"} size={"icon"} aria-label="Cart">
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/cart">
+              <Button variant="ghost" size="icon" aria-label="Cart">
                 <ShoppingCart className="w-5 h-5" />
               </Button>
             </Link>
@@ -117,8 +124,8 @@ const Navbar = ({ categories }: INavbarProps) => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link href={"/login"}>
-                <Button size={"sm"}>Sign in</Button>
+              <Link href="/login">
+                <Button size="sm">Sign in</Button>
               </Link>
             )}
           </div>
