@@ -33,4 +33,15 @@ export interface ICartItem {
   quantity: number;
   image: string;
   slug: string;
+  sku: string;
+}
+
+export interface ShippingAddress {
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  district: string;
+  postalCode?: string;
 }

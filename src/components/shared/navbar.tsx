@@ -1,8 +1,7 @@
 "use client";
-
 import { ICategory } from "@/lib/db/models/category.model";
-import { Cpu, Menu, ShoppingCart, User } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { Cpu, Menu, User } from "lucide-react";
+
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -14,6 +13,9 @@ import {
 import { Button } from "../ui/button";
 import { logoutAction } from "@/lib/actions/auth.actions";
 import SearchBar from "./search-bar";
+import CartIcon from "./cart-icon";
+
+import { useSession } from "next-auth/react";
 
 interface INavbarProps {
   categories: ICategory[];
@@ -77,11 +79,7 @@ const Navbar = ({ categories }: INavbarProps) => {
 
           {/* Right side */}
           <div className="flex items-center gap-2 shrink-0">
-            <Link href="/cart">
-              <Button variant="ghost" size="icon" aria-label="Cart">
-                <ShoppingCart className="w-5 h-5" />
-              </Button>
-            </Link>
+            <CartIcon />
 
             {session ? (
               <DropdownMenu>

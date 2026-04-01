@@ -66,9 +66,9 @@ export interface IOrder extends Document {
   total: number;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
-  paymentMethod: "sslcommerz" | "cod";
+  paymentMethod: "aamarpay" | "cod";
   transactionId?: string;
-  valId?: string; // SSLCommerz validation ID
+  valId?: string; // aamarpay validation ID
   paidAt?: Date;
   notes?: string;
   createdAt: Date;
@@ -118,7 +118,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     paymentMethod: {
       type: String,
-      enum: ["sslcommerz", "cod"],
+      enum: ["aamarpay", "cod"],
       required: true,
     },
     transactionId: { type: String },

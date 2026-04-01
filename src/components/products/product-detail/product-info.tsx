@@ -10,6 +10,8 @@ import { ShoppingCart, Star, Store } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import VariantSelector from "./variant-selector";
+import { useCartStore } from "@/store/cart.store";
+import { toast } from "sonner";
 
 interface IProductInfoProps {
   product: IProduct;
@@ -20,6 +22,8 @@ const ProductInfo = ({ product }: IProductInfoProps) => {
     product.variants[0],
   );
   const [quantity, setQuantity] = useState(1);
+  const addItem = useCartStore((s) => s.addItem);
+
   const vendor = product.vendorId as any;
   const category = product.categoryId as any;
 
@@ -36,6 +40,25 @@ const ProductInfo = ({ product }: IProductInfoProps) => {
     : 0;
 
   const isOutOfStock = selectedVariant.stock === 0;
+
+  const handleAddToCart = () => {
+    console.log(selectedVariant._id);
+    addItem({
+      productId: product._id.toString(),
+      variantId: selectedVariant._id?.toString(),
+      vendorId: product.vendorId?.toString(),
+      name: product.name,
+      variantLabel: selectedVariant.label,
+      sku: selectedVariant.sku,
+      price: selectedVariant.price,
+      quantity,
+      image: product.images[0],
+      slug: product.slug,
+    });
+    toast.success("Added to cart", {
+      description: `${product.name}-${selectedVariant.label}`,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -144,7 +167,7 @@ const ProductInfo = ({ product }: IProductInfoProps) => {
             </button>
           </div>
 
-          <Button className="flex-1 gap-2" size="lg">
+          <Button onClick={handleAddToCart} className="flex-1 gap-2" size="lg">
             <ShoppingCart className="w-4 h-4" />
             Add to Cart
           </Button>

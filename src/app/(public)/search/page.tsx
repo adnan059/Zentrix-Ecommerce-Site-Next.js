@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import ProductFilters from "@/components/products/product-filters";
 import ProductGrid from "@/components/products/product-grid";
 import ProductSort from "@/components/products/product-sort";
