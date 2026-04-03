@@ -12,6 +12,8 @@ import { AuthError } from "next-auth";
 import { User } from "../db/models/user.model";
 import { signIn, signOut } from "@/auth";
 
+/* ───────────────── register user ───────────────── */
+
 export const registerAction = actionClient
   .inputSchema(registerSchema)
   .action(async ({ parsedInput }) => {
@@ -34,6 +36,8 @@ export const registerAction = actionClient
 
     return { success: true, message: "Account created successfully" };
   });
+
+/* ───────────────── login user ───────────────── */
 
 export const loginAction = actionClient
   .inputSchema(loginSchema)
@@ -58,6 +62,8 @@ export const loginAction = actionClient
       throw error;
     }
   });
+
+/* ───────────────── logout user ───────────────── */
 
 export async function logoutAction() {
   await signOut({ redirectTo: "/" });

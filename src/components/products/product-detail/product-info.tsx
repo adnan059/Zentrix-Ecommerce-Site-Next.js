@@ -18,6 +18,7 @@ interface IProductInfoProps {
 }
 
 const ProductInfo = ({ product }: IProductInfoProps) => {
+  console.log("PRODUCT ==> ", product);
   const [selectedVariant, setSelectedVariant] = useState<IVariant>(
     product.variants[0],
   );

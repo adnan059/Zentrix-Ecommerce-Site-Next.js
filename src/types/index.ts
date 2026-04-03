@@ -36,7 +36,7 @@ export interface ICartItem {
   sku: string;
 }
 
-export interface ShippingAddress {
+export interface IShippingAddress {
   fullName: string;
   phone: string;
   addressLine1: string;

@@ -40,6 +40,8 @@ const createOrderSchema = z.object({
   notes: z.string().optional(),
 });
 
+/* ───────────────── creating a cod order ───────────────── */
+
 export const createCodOrder = actionClient
   .inputSchema(createOrderSchema)
   .action(async ({ parsedInput }) => {
@@ -72,6 +74,7 @@ export const createCodOrder = actionClient
       notes: parsedInput.notes,
     });
 
+    // atomically decrement stock
     for (const item of parsedInput.items) {
       await Product.updateOne(
         { _id: item.productId, "variants._id": item.variantId },

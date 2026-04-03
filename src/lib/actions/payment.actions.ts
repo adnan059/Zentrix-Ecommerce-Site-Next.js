@@ -3,6 +3,8 @@ import { z } from "zod";
 import { actionClient } from "../safe-action";
 import { connectDB } from "../db/connect";
 import { Product } from "../db/models/product.model";
+import { Order } from "../db/models/order.model";
+import axios from "axios";
 
 const orderItemSchema = z.object({
   productId: z.string(),
@@ -38,20 +40,83 @@ const initiatePaymentSchema = z.object({
   notes: z.string().optional(),
 });
 
-export const initiateSSLPayment = actionClient
+/* ───────────────── initiating payment with aamarpay ───────────────── */
+
+export const initiateAamarpayPayment = actionClient
   .inputSchema(initiatePaymentSchema)
   .action(async ({ parsedInput }) => {
     await connectDB();
-
     // Stock check before creating the pending order
     for (const item of parsedInput.items) {
       const product = await Product.findById(item.productId);
       if (!product) throw new Error(`Product not found: ${item.name}`);
       const variant = product.variants.id(item.variantId);
-      if (!variant || variant.stock < item.quantity) {
+
+      if (!variant) throw new Error(`Variant not found for: ${item.name}`);
+
+      if (variant.stock < item.quantity) {
         throw new Error(
-          `Insufficient stock for "${item.name} — ${item.variantLabel}"`,
+          `Insufficient stock for "${item.name} — ${item.variantLabel}". Available: ${variant.stock}`,
         );
       }
     }
+    // creating a pending order
+    const order = await Order.create({
+      userId: parsedInput.userId,
+      items: parsedInput.items,
+      shippingAddress: parsedInput.shippingAddress,
+      subtotal: parsedInput.subtotal,
+      shippingFee: parsedInput.shippingFee,
+      discount: parsedInput.discount,
+      total: parsedInput.total,
+      status: "pending",
+      paymentStatus: "unpaid",
+      paymentMethod: "aamarpay",
+      notes: parsedInput.notes,
+      transactionId: "",
+    });
+
+    const tranId = order._id.toString();
+    await Order.findByIdAndUpdate(order._id, { transactionId: tranId });
+
+    const isLive = process.env.AAMARPAY_IS_LIVE === "true";
+    const apiUrl = isLive
+      ? "https://secure.aamarpay.com/jsonpost.php"
+      : "https://sandbox.aamarpay.com/jsonpost.php";
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+
+    const payload = {
+      store_id: process.env.AAMARPAY_STORE_ID!,
+      signature_key: process.env.AAMARPAY_SIGNATURE_KEY!,
+      tran_id: tranId,
+      amount: parsedInput.total.toFixed(2),
+      currency: "BDT",
+      desc: `Zentrix order — ${parsedInput.items.length} item(s)`,
+      cus_name: parsedInput.shippingAddress.fullName,
+      cus_email: parsedInput.userEmail,
+      cus_phone: parsedInput.shippingAddress.phone,
+      cus_add1: parsedInput.shippingAddress.addressLine1,
+      cus_add2: parsedInput.shippingAddress.addressLine2 ?? "",
+      cus_city: parsedInput.shippingAddress.city,
+      cus_state: parsedInput.shippingAddress.district,
+      cus_postcode: parsedInput.shippingAddress.postalCode ?? "0000",
+      cus_country: "Bangladesh",
+      success_url: `${appUrl}/api/payment/success`,
+      fail_url: `${appUrl}/api/payment/fail`,
+      cancel_url: `${appUrl}/api/payment/cancel`,
+      type: "json",
+    };
+
+    const { data } = await axios.post(apiUrl, payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (data?.result !== "true" || !data?.payment_url) {
+      await Order.findByIdAndDelete(order._id);
+      throw new Error(
+        "Payment gateway rejected the request. Please try again.",
+      );
+    }
+    return { paymentUrl: data.payment_url as string };
   });
