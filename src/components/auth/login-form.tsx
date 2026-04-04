@@ -11,9 +11,10 @@ import { Card, CardContent, CardFooter } from "../ui/card";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 
 const LoginForm = () => {
+  const { update } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
@@ -27,8 +28,9 @@ const LoginForm = () => {
   });
 
   const { execute, isPending } = useAction(loginAction, {
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Welcome back !");
+      await update();
       router.push(callbackUrl);
     },
     onError: ({ error }) => {

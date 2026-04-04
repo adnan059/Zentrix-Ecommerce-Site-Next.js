@@ -42,12 +42,38 @@ const ProductInfo = ({ product }: IProductInfoProps) => {
 
   const isOutOfStock = selectedVariant.stock === 0;
 
+  // const handleAddToCart = () => {
+  //   console.log(selectedVariant._id);
+  //   addItem({
+  //     productId: product._id.toString(),
+  //     variantId: selectedVariant._id?.toString(),
+  //     vendorId: product.vendorId?.toString(),
+  //     name: product.name,
+  //     variantLabel: selectedVariant.label,
+  //     sku: selectedVariant.sku,
+  //     price: selectedVariant.price,
+  //     quantity,
+  //     image: product.images[0],
+  //     slug: product.slug,
+  //   });
+  //   toast.success("Added to cart", {
+  //     description: `${product.name}-${selectedVariant.label}`,
+  //   });
+  // };
+
   const handleAddToCart = () => {
-    console.log(selectedVariant._id);
+    const variantId = selectedVariant._id as unknown as string;
+    const vendorId = vendor?._id?.toString();
+
+    if (!variantId || !vendorId) {
+      toast.error("Something went wrong. Please refresh the page.");
+      return;
+    }
+
     addItem({
       productId: product._id.toString(),
-      variantId: selectedVariant._id?.toString(),
-      vendorId: product.vendorId?.toString(),
+      variantId,
+      vendorId,
       name: product.name,
       variantLabel: selectedVariant.label,
       sku: selectedVariant.sku,
@@ -56,8 +82,9 @@ const ProductInfo = ({ product }: IProductInfoProps) => {
       image: product.images[0],
       slug: product.slug,
     });
+
     toast.success("Added to cart", {
-      description: `${product.name}-${selectedVariant.label}`,
+      description: `${product.name} — ${selectedVariant.label}`,
     });
   };
 

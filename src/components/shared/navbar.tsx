@@ -11,11 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
-import { logoutAction } from "@/lib/actions/auth.actions";
+//import { logoutAction } from "@/lib/actions/auth.actions";
 import SearchBar from "./search-bar";
 import CartIcon from "./cart-icon";
 
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 interface INavbarProps {
   categories: ICategory[];
@@ -115,7 +115,7 @@ const Navbar = ({ categories }: INavbarProps) => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-red-600 cursor-pointer"
-                    onClick={() => logoutAction()}
+                    onClick={() => signOut({ callbackUrl: "/" })}
                   >
                     Sign out
                   </DropdownMenuItem>

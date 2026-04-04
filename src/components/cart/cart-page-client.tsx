@@ -30,6 +30,8 @@ const CartPageClient = () => {
   const shippingFee = vendorCount * SHIPPING_FEE;
   const total = subtotal + shippingFee;
 
+  console.log("CART ITEMS ==>", items);
+
   if (items.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-center">

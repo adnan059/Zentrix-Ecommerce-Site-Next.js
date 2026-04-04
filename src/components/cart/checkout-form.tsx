@@ -10,7 +10,7 @@ import { useCartStore } from "@/store/cart.store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Label } from "../ui/label";
@@ -44,6 +44,7 @@ const bangladeshiDistricts = [
 ];
 
 const CheckoutForm = ({ userId, userEmail }: ICheckoutFormProps) => {
+  const orderPlacedRef = useRef(false);
   const { items, getTotalPrice, clearCart } = useCartStore();
   const [paymentMethod, setPaymentMethod] = useState<"aamarpay" | "cod">(
     "aamarpay",
@@ -69,6 +70,7 @@ const CheckoutForm = ({ userId, userEmail }: ICheckoutFormProps) => {
     {
       onSuccess: ({ data }) => {
         if (data?.success) {
+          orderPlacedRef.current = true;
           clearCart();
           toast.success("Order placed!", {
             description: "We'll process it soon.",
@@ -92,7 +94,7 @@ const CheckoutForm = ({ userId, userEmail }: ICheckoutFormProps) => {
       },
 
       onError: ({ error }) => {
-        console.log("FULL ERROR:", error);
+        console.log("FULL ERROR while executing aamarpay payment:", error);
         toast.error(error.serverError ?? "Payment initiation failed");
       },
     },
@@ -100,8 +102,13 @@ const CheckoutForm = ({ userId, userEmail }: ICheckoutFormProps) => {
 
   const isPending = isCodPending || isAamarpayPending;
 
+  useEffect(() => {
+    if (items.length === 0 && !orderPlacedRef.current) {
+      router.push("/cart");
+    }
+  }, [items.length, router]);
+
   if (items.length === 0) {
-    router.push("/cart");
     return null;
   }
 
