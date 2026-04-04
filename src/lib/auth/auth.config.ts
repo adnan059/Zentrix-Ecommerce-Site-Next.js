@@ -55,8 +55,8 @@ export const authConfig: NextAuthConfig = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         await connectDB();
-        const existing = await User.findOne({ email: user.email });
-        if (!existing) {
+        let dbUser = await User.findOne({ email: user.email }).lean();
+        if (!dbUser) {
           await User.create({
             name: user.name ?? undefined,
             email: user.email ?? undefined,
@@ -64,8 +64,9 @@ export const authConfig: NextAuthConfig = {
             emailVerified: new Date(),
             role: "buyer",
           });
+          dbUser = await User.findOne({ email: user.email }).lean();
         }
-        const dbUser = await User.findOne({ email: user.email }).lean();
+
         if (dbUser) {
           user.id = dbUser._id.toString();
           user.role = dbUser.role;

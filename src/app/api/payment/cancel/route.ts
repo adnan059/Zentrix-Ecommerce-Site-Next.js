@@ -12,6 +12,6 @@ export async function POST(req: NextRequest) {
     console.error("AAMARPAY_CANCEL_ERROR: ", error);
   }
   return NextResponse.redirect(
-    `${process.env.NEXT_PUBLIC_APP_URL!}/cart?payment=cancelled`,
+    `${process.env.NEXT_PUBLIC_APP_URL!}/payment/result?status=cancelled`,
   );
 }

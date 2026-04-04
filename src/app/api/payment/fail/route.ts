@@ -17,6 +17,6 @@ export async function POST(req: NextRequest) {
     console.log("AAMAR_PAY_FAIL_ERROR: ", error);
   }
   return NextResponse.redirect(
-    `${process.env.NEXT_PUBLIC_APP_URL!}/cart?payment=failed`,
+    `${process.env.NEXT_PUBLIC_APP_URL!}/payment/result?status=failed`,
   );
 }

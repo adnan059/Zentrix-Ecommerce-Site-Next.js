@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useCartStore } from "@/store/cart.store";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
 export default function PaymentResultPage() {
   const searchParams = useSearchParams();
@@ -39,6 +39,21 @@ export default function PaymentResultPage() {
             <Button variant="outline">Continue Shopping</Button>
           </Link>
         </div>
+      </div>
+    );
+  }
+
+  if (status === "cancelled") {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 space-y-4">
+        <AlertCircle className="w-16 h-16 text-yellow-500" />
+        <h1 className="text-2xl font-bold text-gray-900">Payment Cancelled</h1>
+        <p className="text-gray-500">
+          You cancelled the payment. Your cart has been preserved.
+        </p>
+        <Link href="/cart">
+          <Button>Return to Cart</Button>
+        </Link>
       </div>
     );
   }
