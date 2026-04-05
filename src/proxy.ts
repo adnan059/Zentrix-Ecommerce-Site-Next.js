@@ -1,7 +1,14 @@
+// src/proxy.ts
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-const buyerRoutes = ["/account", "/orders", "/wishlist", "/cart/checkout"];
+const buyerRoutes = [
+  "/account",
+  "/orders",
+  "/wishlist",
+  "/reviews",
+  "/cart/checkout",
+];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
@@ -33,6 +40,7 @@ export const config = {
     "/account/:path*",
     "/orders/:path*",
     "/wishlist/:path*",
+    "/reviews/:path*",
     "/cart/checkout/:path*",
     "/vendor/:path*",
     "/admin/:path*",

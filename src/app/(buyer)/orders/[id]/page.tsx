@@ -9,9 +9,19 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import React from "react";
 
-export const metadata: Metadata = {
-  title: "Order Details - Zentrix",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const shortId = id.slice(-8).toUpperCase();
+  return {
+    title: `Order #${shortId} - Zentrix`,
+    // Prevent order pages from being indexed by search engines
+    robots: { index: false },
+  };
+}
 
 const orderStatusConfig: Record<
   OrderStatus,
@@ -68,17 +78,12 @@ export default async function OrderDetailPage({
   const { id } = await params;
   const { payment } = await searchParams;
 
-  const order = await getOrderById(id);
+  const order = await getOrderById(
+    id,
+    session.user.role === "admin" ? undefined : session.user.id,
+  );
 
   if (!order) notFound();
-
-  // Security: buyers can only see their own orders
-  if (
-    order.userId.toString() !== session.user.id &&
-    session.user.role !== "admin"
-  ) {
-    redirect("/");
-  }
 
   const orderStatus = orderStatusConfig[order.status];
   const paymentStatus = paymentStatusConfig[order.paymentStatus];
