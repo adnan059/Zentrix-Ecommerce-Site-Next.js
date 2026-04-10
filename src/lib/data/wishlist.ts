@@ -12,7 +12,7 @@ export const getWishList = async (
       path: "productIds",
       model: Product,
       select: "_id name slug images variants isActive",
-      match: { isActive: true },
+      match: { status: "published" },
     })
     .lean();
 

@@ -1,11 +1,11 @@
 "use server";
 
 import { z } from "zod";
-import {} from "next/cache";
+import { revalidatePath } from "next/cache";
 import { authActionClient } from "../safe-action";
 import { connectDB } from "../db/connect";
 import { Wishlist } from "../db/models/wishlist.model";
-import { revalidatePath } from "next/cache";
+import { Product } from "../db/models/product.model";
 
 const productIdSchema = z.object({ productId: z.string().min(1) });
 
@@ -20,7 +20,10 @@ export const toggleWishlistAction = authActionClient
         userId: ctx.userId,
         productIds: [parsedInput.productId],
       });
+
+      // Revalidate both pages
       revalidatePath("/wishlist");
+      await revalidateProductPage(parsedInput.productId);
       return { added: true };
     }
 
@@ -40,5 +43,14 @@ export const toggleWishlistAction = authActionClient
 
     await wishlist.save();
     revalidatePath("/wishlist");
+    await revalidateProductPage(parsedInput.productId);
     return { added: !isInList };
   });
+
+// Helper: look up the product slug and revalidate its page
+async function revalidateProductPage(productId: string) {
+  const product = await Product.findById(productId).select("slug").lean();
+  if (product?.slug) {
+    revalidatePath(`/products/${product.slug}`);
+  }
+}

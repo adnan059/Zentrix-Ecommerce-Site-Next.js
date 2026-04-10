@@ -1,3 +1,5 @@
+"use client";
+
 import { toggleWishlistAction } from "@/lib/actions/wishlist.actions";
 import { cn } from "@/lib/utils";
 import { Heart } from "lucide-react";
@@ -20,7 +22,6 @@ const WishlistButton = ({
   className,
 }: IWishlistButtonProps) => {
   const [inWishlist, setInWishlist] = useState(initialInWishlist);
-
   const router = useRouter();
 
   const { execute, isPending } = useAction(toggleWishlistAction, {

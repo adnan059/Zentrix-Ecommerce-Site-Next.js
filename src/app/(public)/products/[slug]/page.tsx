@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ProductImages from "@/components/products/product-detail/product-images";
 import ProductInfo from "@/components/products/product-detail/product-info";
+
 import ProductGrid from "@/components/products/product-grid";
 import { getProductBySlug, getRelatedProducts } from "@/lib/data/products";
+import { getWishlistIds } from "@/lib/data/wishlist";
+import { auth } from "@/auth";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { Product, WithContext } from "schema-dts";
+import ProductReviews from "@/components/products/product-detail/product-reviews";
 
 interface IProductPageProps {
   params: Promise<{ slug: string }>;
@@ -33,16 +37,27 @@ export const revalidate = 3600;
 
 export default async function ProductPage({ params }: IProductPageProps) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+
+  // Fetch product and session in parallel
+  const [product, session] = await Promise.all([
+    getProductBySlug(slug),
+    auth(),
+  ]);
+
   if (!product) notFound();
 
   const categoryId = (product.categoryId as any)?._id?.toString();
 
-  const relatedProducts = categoryId
-    ? await getRelatedProducts(categoryId, slug, 4)
-    : [];
+  // Fetch related products and wishlist IDs in parallel
+  const [relatedProducts, wishlistIds] = await Promise.all([
+    categoryId ? getRelatedProducts(categoryId, slug, 4) : Promise.resolve([]),
+    session?.user?.id ? getWishlistIds(session.user.id) : Promise.resolve([]),
+  ]);
 
-  // JSON-LD structured data — helps Google show rich results
+  const isInWishlist = wishlistIds.includes(product._id.toString());
+  const isLoggedIn = !!session;
+
+  // JSON-LD structured data
   const jsonLd: WithContext<Product> = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -73,7 +88,6 @@ export default async function ProductPage({ params }: IProductPageProps) {
 
   return (
     <>
-      {/* JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -93,7 +107,11 @@ export default async function ProductPage({ params }: IProductPageProps) {
         {/* Product main section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <ProductImages images={product.images} name={product.name} />
-          <ProductInfo product={product} />
+          <ProductInfo
+            product={product}
+            isInWishlist={isInWishlist}
+            isLoggedIn={isLoggedIn}
+          />
         </div>
 
         {/* Specs table */}
@@ -103,7 +121,6 @@ export default async function ProductPage({ params }: IProductPageProps) {
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 Specifications
               </h2>
-
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <tbody>
@@ -125,6 +142,11 @@ export default async function ProductPage({ params }: IProductPageProps) {
               </div>
             </div>
           )}
+
+        {/* Reviews */}
+        <div>
+          <ProductReviews productId={product._id.toString()} />
+        </div>
 
         {/* Related products */}
         {relatedProducts.length > 0 && (

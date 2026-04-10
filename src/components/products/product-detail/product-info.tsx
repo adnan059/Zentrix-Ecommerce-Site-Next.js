@@ -25,7 +25,6 @@ const ProductInfo = ({
   isInWishlist,
   isLoggedIn,
 }: IProductInfoProps) => {
-  console.log("PRODUCT ==> ", product);
   const [selectedVariant, setSelectedVariant] = useState<IVariant>(
     product.variants[0],
   );
@@ -48,25 +47,6 @@ const ProductInfo = ({
     : 0;
 
   const isOutOfStock = selectedVariant.stock === 0;
-
-  // const handleAddToCart = () => {
-  //   console.log(selectedVariant._id);
-  //   addItem({
-  //     productId: product._id.toString(),
-  //     variantId: selectedVariant._id?.toString(),
-  //     vendorId: product.vendorId?.toString(),
-  //     name: product.name,
-  //     variantLabel: selectedVariant.label,
-  //     sku: selectedVariant.sku,
-  //     price: selectedVariant.price,
-  //     quantity,
-  //     image: product.images[0],
-  //     slug: product.slug,
-  //   });
-  //   toast.success("Added to cart", {
-  //     description: `${product.name}-${selectedVariant.label}`,
-  //   });
-  // };
 
   const handleAddToCart = () => {
     const variantId = selectedVariant._id as unknown as string;
@@ -137,6 +117,11 @@ const ProductInfo = ({
           </span>
         </div>
       )}
+      <WishlistButton
+        productId={product._id.toString()}
+        initialInWishlist={isInWishlist}
+        isLoggedIn={isLoggedIn}
+      />
 
       {/* Price */}
       <div className="space-y-1">
@@ -237,12 +222,6 @@ const ProductInfo = ({
           </div>
         </Link>
       )}
-
-      <WishlistButton
-        productId={product._id.toString()}
-        initialInWishlist={isInWishlist}
-        isLoggedIn={isLoggedIn}
-      />
     </div>
   );
 };

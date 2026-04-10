@@ -76,7 +76,7 @@ export type PlainWishlistProduct = {
   slug: string;
   images: string[];
   variants: Array<{ price: number; [key: string]: unknown }>;
-  isActive: boolean;
+  status: "draft" | "published" | "archived";
 };
 
 export type PlainReview = {
