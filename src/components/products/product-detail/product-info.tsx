@@ -12,12 +12,19 @@ import { useState } from "react";
 import VariantSelector from "./variant-selector";
 import { useCartStore } from "@/store/cart.store";
 import { toast } from "sonner";
+import WishlistButton from "@/components/shared/wishlist-button";
 
 interface IProductInfoProps {
   product: IProduct;
+  isInWishlist: boolean; // ← add
+  isLoggedIn: boolean; // ← add
 }
 
-const ProductInfo = ({ product }: IProductInfoProps) => {
+const ProductInfo = ({
+  product,
+  isInWishlist,
+  isLoggedIn,
+}: IProductInfoProps) => {
   console.log("PRODUCT ==> ", product);
   const [selectedVariant, setSelectedVariant] = useState<IVariant>(
     product.variants[0],
@@ -230,6 +237,12 @@ const ProductInfo = ({ product }: IProductInfoProps) => {
           </div>
         </Link>
       )}
+
+      <WishlistButton
+        productId={product._id.toString()}
+        initialInWishlist={isInWishlist}
+        isLoggedIn={isLoggedIn}
+      />
     </div>
   );
 };

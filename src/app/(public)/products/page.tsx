@@ -29,6 +29,7 @@ export default async function ProductsPage({
   const params = await searchParams;
 
   const page = Number(params.page) || 1;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sort = (params.sort as any) || "newest";
   const minPrice = params.minPrice ? Number(params.minPrice) : undefined;
   const maxPrice = params.maxPrice ? Number(params.maxPrice) : undefined;
