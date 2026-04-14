@@ -80,7 +80,7 @@ export default async function HomePage() {
                   className="object-contain"
                 />
               </div>
-              <span className="text-xs text-center text-gray-600 group-hover:text-blue-600 font-medium leading-tight">
+              <span className="text-xs text-cente text-gray-600 group-hover:text-blue-600 font-medium leading-tight">
                 {category.name}
               </span>
             </Link>
