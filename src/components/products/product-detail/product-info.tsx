@@ -1,10 +1,7 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { IProduct, IVariant } from "@/lib/db/models/product.model";
 import { formatCurrency } from "@/lib/utils/format";
 import { ShoppingCart, Star, Store } from "lucide-react";
 import Link from "next/link";
@@ -13,11 +10,13 @@ import VariantSelector from "./variant-selector";
 import { useCartStore } from "@/store/cart.store";
 import { toast } from "sonner";
 import WishlistButton from "@/components/shared/wishlist-button";
+import { IProductVariant, PopulatedProduct } from "@/types";
+// ✅ No IVariant import — we only use IProductVariant now
 
 interface IProductInfoProps {
-  product: IProduct;
-  isInWishlist: boolean; // ← add
-  isLoggedIn: boolean; // ← add
+  product: PopulatedProduct;
+  isInWishlist: boolean;
+  isLoggedIn: boolean;
 }
 
 const ProductInfo = ({
@@ -25,14 +24,15 @@ const ProductInfo = ({
   isInWishlist,
   isLoggedIn,
 }: IProductInfoProps) => {
-  const [selectedVariant, setSelectedVariant] = useState<IVariant>(
+  const vendor = product.vendorId; // IPopulatedVendor — fully typed
+  const category = product.categoryId; // IPopulatedCategory — fully typed
+
+  // ✅ IProductVariant — no conflict, _id is string here
+  const [selectedVariant, setSelectedVariant] = useState<IProductVariant>(
     product.variants[0],
   );
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((s) => s.addItem);
-
-  const vendor = product.vendorId as any;
-  const category = product.categoryId as any;
 
   const hasDiscount =
     selectedVariant.compareAtPrice &&
@@ -49,18 +49,16 @@ const ProductInfo = ({
   const isOutOfStock = selectedVariant.stock === 0;
 
   const handleAddToCart = () => {
-    const variantId = selectedVariant._id as unknown as string;
-    const vendorId = vendor?._id?.toString();
-
-    if (!variantId || !vendorId) {
+    // ✅ _id is already a string — no cast needed
+    if (!selectedVariant._id || !vendor?._id) {
       toast.error("Something went wrong. Please refresh the page.");
       return;
     }
 
     addItem({
-      productId: product._id.toString(),
-      variantId,
-      vendorId,
+      productId: product._id,
+      variantId: selectedVariant._id,
+      vendorId: vendor._id,
       name: product.name,
       variantLabel: selectedVariant.label,
       sku: selectedVariant.sku,
@@ -117,8 +115,9 @@ const ProductInfo = ({
           </span>
         </div>
       )}
+
       <WishlistButton
-        productId={product._id.toString()}
+        productId={product._id}
         initialInWishlist={isInWishlist}
         isLoggedIn={isLoggedIn}
       />
@@ -129,7 +128,6 @@ const ProductInfo = ({
           <span className="text-3xl font-bold text-gray-900">
             {formatCurrency(selectedVariant.price)}
           </span>
-
           {hasDiscount && (
             <>
               <span className="text-lg text-gray-400 line-through">
@@ -143,14 +141,16 @@ const ProductInfo = ({
         </div>
         <p className="text-xs text-gray-400">Price includes VAT</p>
       </div>
+
       {/* Variant selector */}
       {product.variants.length > 1 && (
         <VariantSelector
-          variants={product.variants}
-          selectedVariant={selectedVariant}
-          onSelect={setSelectedVariant}
+          variants={product.variants} // IProductVariant[] ✅
+          selectedVariant={selectedVariant} // IProductVariant ✅
+          onSelect={setSelectedVariant} // (v: IProductVariant) => void ✅
         />
       )}
+
       {/* Stock */}
       <div className="flex items-center gap-2">
         <div
@@ -164,6 +164,7 @@ const ProductInfo = ({
             : `In stock (${selectedVariant.stock} available)`}
         </span>
       </div>
+
       {/* Quantity + Add to cart */}
       {!isOutOfStock && (
         <div className="flex items-center gap-3">

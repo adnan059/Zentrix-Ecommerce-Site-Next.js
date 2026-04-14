@@ -1,11 +1,10 @@
-import { IProduct } from "@/lib/db/models/product.model";
-
-interface IProductGridProps {
-  products: IProduct[];
-}
-
 import React from "react";
 import ProductCard from "./product-card";
+import { PopulatedProduct } from "@/types";
+
+interface IProductGridProps {
+  products: PopulatedProduct[];
+}
 
 const ProductGrid = ({ products }: IProductGridProps) => {
   if (products.length === 0) {

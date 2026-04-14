@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
-import { actionClient } from "../safe-action";
+
+import { authActionClient } from "../safe-action";
 import { connectDB } from "../db/connect";
 import { Product } from "../db/models/product.model";
 import { Order } from "../db/models/order.model";
@@ -20,7 +21,6 @@ const orderItemSchema = z.object({
 });
 
 const initiatePaymentSchema = z.object({
-  userId: z.string(),
   userEmail: z.string().email(),
   items: z.array(orderItemSchema).min(1),
   shippingAddress: z.object({
@@ -40,29 +40,25 @@ const initiatePaymentSchema = z.object({
   notes: z.string().optional(),
 });
 
-/* ───────────────── initiating payment with aamarpay ───────────────── */
-
-export const initiateAamarpayPayment = actionClient
+export const initiateAamarpayPayment = authActionClient
   .inputSchema(initiatePaymentSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     await connectDB();
-    // Stock check before creating the pending order
+
     for (const item of parsedInput.items) {
       const product = await Product.findById(item.productId);
       if (!product) throw new Error(`Product not found: ${item.name}`);
       const variant = product.variants.id(item.variantId);
-
       if (!variant) throw new Error(`Variant not found for: ${item.name}`);
-
       if (variant.stock < item.quantity) {
         throw new Error(
           `Insufficient stock for "${item.name} — ${item.variantLabel}". Available: ${variant.stock}`,
         );
       }
     }
-    // creating a pending order
+
     const order = await Order.create({
-      userId: parsedInput.userId,
+      userId: ctx.userId,
       items: parsedInput.items,
       shippingAddress: parsedInput.shippingAddress,
       subtotal: parsedInput.subtotal,
@@ -118,5 +114,6 @@ export const initiateAamarpayPayment = actionClient
         "Payment gateway rejected the request. Please try again.",
       );
     }
+
     return { paymentUrl: data.payment_url as string };
   });

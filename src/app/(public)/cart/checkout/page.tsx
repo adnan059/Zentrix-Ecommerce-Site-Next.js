@@ -11,7 +11,5 @@ export default async function CheckoutPage() {
   const session = await auth();
 
   if (!session) redirect("/login?callbackUrl=/cart/checkout");
-  return (
-    <CheckoutForm userId={session.user.id} userEmail={session.user.email!} />
-  );
+  return <CheckoutForm userEmail={session.user.email!} />;
 }

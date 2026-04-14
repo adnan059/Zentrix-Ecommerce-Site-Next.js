@@ -2,6 +2,8 @@ import { ICartItem } from "@/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+const MAX_QUANTITY = 10;
+
 interface ICartState {
   items: ICartItem[];
   addItem: (item: ICartItem) => void;
@@ -29,20 +31,30 @@ export const useCartStore = create<ICartState>()(
               i.variantId === newItem.variantId,
           );
           if (existing) {
-            // increase quantity, but cap at a reasonable max (e.g. 10)
             return {
               items: state.items.map((i) =>
                 i.productId === newItem.productId &&
                 i.variantId === newItem.variantId
                   ? {
                       ...i,
-                      quantity: Math.min(i.quantity + newItem.quantity, 10),
+                      quantity: Math.min(
+                        i.quantity + newItem.quantity,
+                        MAX_QUANTITY,
+                      ),
                     }
                   : i,
               ),
             };
           }
-          return { items: [...state.items, newItem] };
+          return {
+            items: [
+              ...state.items,
+              {
+                ...newItem,
+                quantity: Math.min(newItem.quantity, MAX_QUANTITY),
+              },
+            ],
+          };
         });
       },
 
@@ -59,7 +71,7 @@ export const useCartStore = create<ICartState>()(
         set((state) => ({
           items: state.items.map((i) =>
             i.productId === productId && i.variantId === variantId
-              ? { ...i, quantity }
+              ? { ...i, quantity: Math.min(quantity, MAX_QUANTITY) }
               : i,
           ),
         }));
@@ -68,12 +80,9 @@ export const useCartStore = create<ICartState>()(
       clearCart: () => set({ items: [] }),
 
       getTotalItems: () => get().items.reduce((acc, i) => acc + i.quantity, 0),
-
       getTotalPrice: () =>
         get().items.reduce((acc, i) => acc + i.price * i.quantity, 0),
     }),
-    {
-      name: "zentrix-cart", // localStorage key
-    },
+    { name: "zentrix-cart" },
   ),
 );

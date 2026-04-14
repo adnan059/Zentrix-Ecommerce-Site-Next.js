@@ -1,13 +1,12 @@
 "use client";
 
-import { IVariant } from "@/lib/db/models/product.model";
+import { IProductVariant } from "@/types";
 import { cn } from "@/lib/utils";
-import React from "react";
 
 interface IVariantSelectorProps {
-  variants: IVariant[];
-  selectedVariant: IVariant;
-  onSelect: (variant: IVariant) => void;
+  variants: IProductVariant[]; // ✅ IProductVariant, not IVariant
+  selectedVariant: IProductVariant; // ✅
+  onSelect: (variant: IProductVariant) => void; // ✅
 }
 
 const VariantSelector = ({
@@ -18,21 +17,26 @@ const VariantSelector = ({
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium text-gray-700">
-        Variant: <span className="text-gray-900">{selectedVariant.label}</span>
+        Variant:{" "}
+        <span className="font-normal text-gray-500">
+          {selectedVariant.label}
+        </span>
       </p>
       <div className="flex flex-wrap gap-2">
         {variants.map((variant) => (
           <button
-            key={variant._id?.toString()}
+            key={variant._id} // ✅ _id is now string — no .toString() needed
+            type="button"
             onClick={() => onSelect(variant)}
             disabled={variant.stock === 0}
             className={cn(
-              "px-3 py-1.5 text-sm rounded-lg border transition-all",
-              selectedVariant._id?.toString() === variant._id?.toString()
-                ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
-                : "border-gray-200 hover:border-gray-400 text-gray-700",
-              variant.stock === 0 &&
-                "opacity-40 cursor-not-allowed line-through",
+              "px-3 py-1.5 text-sm border rounded-lg transition-all",
+              variant.stock === 0
+                ? "opacity-40 cursor-not-allowed line-through"
+                : "cursor-pointer hover:border-blue-400",
+              selectedVariant._id === variant._id
+                ? "border-blue-600 bg-blue-50 text-blue-700 font-medium"
+                : "border-gray-200 text-gray-700",
             )}
           >
             {variant.label}

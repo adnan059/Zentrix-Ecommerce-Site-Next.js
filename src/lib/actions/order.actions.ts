@@ -1,7 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { actionClient } from "../safe-action";
+
+import { authActionClient } from "../safe-action";
 import { connectDB } from "../db/connect";
 import { Product } from "../db/models/product.model";
 import { Order } from "../db/models/order.model";
@@ -20,7 +21,6 @@ const orderItemSchema = z.object({
 });
 
 const createOrderSchema = z.object({
-  userId: z.string(),
   userEmail: z.string().email(),
   items: z.array(orderItemSchema).min(1),
   shippingAddress: z.object({
@@ -42,14 +42,14 @@ const createOrderSchema = z.object({
 
 /* ───────────────── creating a cod order ───────────────── */
 
-export const createCodOrder = actionClient
+export const createCodOrder = authActionClient
   .inputSchema(createOrderSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     await connectDB();
-    // Stock validation — check all variants before writing anything
+
     for (const item of parsedInput.items) {
       const product = await Product.findById(item.productId);
-      if (!product) throw new Error(`Product not found ${item.name}`);
+      if (!product) throw new Error(`Product not found: ${item.name}`);
       const variant = product.variants.id(item.variantId);
       if (!variant) throw new Error(`Variant not found for: ${item.name}`);
       if (variant.stock < item.quantity) {
@@ -59,9 +59,8 @@ export const createCodOrder = actionClient
       }
     }
 
-    // create order;
     const order = await Order.create({
-      userId: parsedInput.userId,
+      userId: ctx.userId,
       items: parsedInput.items,
       shippingAddress: parsedInput.shippingAddress,
       subtotal: parsedInput.subtotal,
@@ -74,7 +73,6 @@ export const createCodOrder = actionClient
       notes: parsedInput.notes,
     });
 
-    // atomically decrement stock
     for (const item of parsedInput.items) {
       await Product.updateOne(
         { _id: item.productId, "variants._id": item.variantId },

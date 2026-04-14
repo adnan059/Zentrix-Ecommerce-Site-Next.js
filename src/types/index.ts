@@ -1,22 +1,21 @@
 import { IOrder } from "@/lib/db/models/order.model";
 
 export type UserRole = "buyer" | "vendor" | "admin";
-
 export type VendorStatus = "pending" | "approved" | "suspended";
-
 export type OrderStatus =
   | "pending"
   | "processing"
   | "shipped"
   | "delivered"
   | "cancelled";
-
 export type ProductStatus = "draft" | "published" | "archived";
-
 export type PaymentStatus = "unpaid" | "paid" | "refunded";
 
+// ─── This is THE variant type used everywhere in the UI layer.
+// It uses string for _id because after .lean() all ObjectIds become strings.
+// Never use IVariant (Mongoose subdocument) in components.
 export interface IProductVariant {
-  _id?: string;
+  _id: string; // ✅ string, not ObjectId — this is the post-.lean() shape
   label: string;
   sku: string;
   price: number;
@@ -112,4 +111,44 @@ export type PlainUser = {
   createdAt: string;
   updatedAt: string;
   hasPassword: boolean;
+};
+
+// ─── Populated sub-types (post-.lean() + .populate() shapes) ──────────────
+
+export interface IPopulatedVendor {
+  _id: string;
+  storeName: string;
+  storeSlug: string;
+  rating: number;
+  totalReviews: number;
+}
+
+export interface IPopulatedCategory {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
+// ─── PopulatedProduct: the plain object shape returned by .lean() + .populate()
+// All components that display products must use this type, never IProduct.
+export type PopulatedProduct = {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  brand: string;
+  images: string[];
+  basePrice: number;
+  rating: number;
+  totalReviews: number;
+  totalSales: number;
+  tags: string[];
+  warranty?: string;
+  status: ProductStatus;
+  isFeatured: boolean;
+  createdAt: string;
+  updatedAt: string;
+  variants: IProductVariant[]; // ✅ uses IProductVariant (string _id), not IVariant (ObjectId)
+  vendorId: IPopulatedVendor;
+  categoryId: IPopulatedCategory;
 };

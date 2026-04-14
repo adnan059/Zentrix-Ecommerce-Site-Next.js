@@ -46,8 +46,11 @@ export const getOrderIdForReview = async (
     userId,
     "items.productId": productId,
     paymentStatus: "paid",
+
+    status: { $in: ["processing", "shipped", "delivered"] },
   })
     .select("_id")
     .lean();
+
   return order ? order._id.toString() : null;
 };

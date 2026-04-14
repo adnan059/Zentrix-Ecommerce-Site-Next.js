@@ -20,7 +20,6 @@ import { formatCurrency } from "@/lib/utils/format";
 import { Button } from "../ui/button";
 
 interface ICheckoutFormProps {
-  userId: string;
   userEmail: string;
 }
 
@@ -43,7 +42,7 @@ const bangladeshiDistricts = [
   "Cox's Bazar",
 ];
 
-const CheckoutForm = ({ userId, userEmail }: ICheckoutFormProps) => {
+const CheckoutForm = ({ userEmail }: ICheckoutFormProps) => {
   const orderPlacedRef = useRef(false);
   const { items, getTotalPrice, clearCart } = useCartStore();
   const [paymentMethod, setPaymentMethod] = useState<"aamarpay" | "cod">(
@@ -113,7 +112,6 @@ const CheckoutForm = ({ userId, userEmail }: ICheckoutFormProps) => {
   }
 
   const buildOrderPayload = (values: CheckoutFormValues) => ({
-    userId,
     userEmail,
     items: items.map((i) => ({
       productId: i.productId,

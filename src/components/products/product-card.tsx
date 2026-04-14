@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { IProduct } from "@/lib/db/models/product.model";
+import { PopulatedProduct } from "@/types";
 import { Star } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "../ui/badge";
@@ -7,18 +6,20 @@ import { formatCurrency } from "@/lib/utils/format";
 import Link from "next/link";
 
 interface IProductCardProps {
-  product: IProduct;
+  product: PopulatedProduct;
 }
 
 const ProductCard = ({ product }: IProductCardProps) => {
+  const firstVariant = product.variants[0];
+
   const hasDiscount =
-    product.variants?.[0]?.compareAtPrice &&
-    product.variants[0].compareAtPrice > product.basePrice;
+    firstVariant?.compareAtPrice &&
+    firstVariant.compareAtPrice > product.basePrice;
 
   const discountPercent = hasDiscount
     ? Math.round(
-        ((product.variants[0].compareAtPrice! - product.basePrice) /
-          product.variants[0].compareAtPrice!) *
+        ((firstVariant.compareAtPrice! - product.basePrice) /
+          firstVariant.compareAtPrice!) *
           100,
       )
     : 0;
@@ -72,16 +73,16 @@ const ProductCard = ({ product }: IProductCardProps) => {
             </span>
             {hasDiscount && (
               <span className="text-xs text-gray-400 line-through">
-                {formatCurrency(product.variants[0].compareAtPrice!)}
+                {formatCurrency(firstVariant.compareAtPrice!)}
               </span>
             )}
           </div>
 
-          {/* Vendor */}
+          {/* Vendor — fully typed, no `any` */}
           <p className="text-xs text-gray-400">
             by{" "}
             <span className="text-blue-500">
-              {(product.vendorId as any)?.storeName ?? "Zentrix Seller"}
+              {product.vendorId?.storeName ?? "Zentrix Seller"}
             </span>
           </p>
         </div>

@@ -1,5 +1,3 @@
-// aamarpay sends a post with form data to success_url after payment
-
 import { connectDB } from "@/lib/db/connect";
 import { Order } from "@/lib/db/models/order.model";
 import { Product } from "@/lib/db/models/product.model";
@@ -40,25 +38,33 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const order = await Order.findById(tranId);
+    const updatedOrder = await Order.findOneAndUpdate(
+      {
+        _id: tranId,
+        paymentStatus: "unpaid",
+      },
+      {
+        $set: {
+          paymentStatus: "paid",
+          status: "processing",
+          transactionId: pgTxnId,
+          paidAt: new Date(),
+        },
+      },
+      { new: true },
+    );
 
-    if (!order) {
+    if (!updatedOrder) {
+      const existingOrder = await Order.findById(tranId).select("_id").lean();
+      if (existingOrder) {
+        return NextResponse.redirect(
+          `${appUrl}/payment/result?status=success&orderId=${existingOrder._id}`,
+        );
+      }
       return NextResponse.redirect(`${appUrl}/payment/result?status=failed`);
     }
 
-    if (order.paymentStatus === "paid") {
-      return NextResponse.redirect(
-        `${appUrl}/payment/result?status=success&orderId=${order._id}`,
-      );
-    }
-
-    order.paymentStatus = "paid";
-    order.status = "processing";
-    order.transactionId = pgTxnId;
-    order.paidAt = new Date();
-    await order.save();
-
-    for (const item of order.items) {
+    for (const item of updatedOrder.items) {
       await Product.updateOne(
         { _id: item.productId, "variants._id": item.variantId },
         {
@@ -71,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.redirect(
-      `${appUrl}/payment/result?status=success&orderId=${order._id}`,
+      `${appUrl}/payment/result?status=success&orderId=${updatedOrder._id}`,
     );
   } catch (error) {
     console.error("aamarpay success error:", error);
