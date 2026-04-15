@@ -1,14 +1,15 @@
 "use client";
-import { ICategory } from "@/lib/db/models/category.model";
+
+import { PlainCategory } from "@/types";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback } from "react";
 
 interface IProductFilterProps {
-  categories: ICategory[];
+  categories: PlainCategory[];
   activeCategory?: string;
-  specSchema?: ICategory["specSchema"];
+  specSchema?: PlainCategory["specSchema"];
 }
 
 const ProductFilters = ({
@@ -23,7 +24,6 @@ const ProductFilters = ({
   const updateParam = useCallback(
     (key: string, value: string) => {
       const params = new URLSearchParams(searchParams.toString());
-
       if (value) {
         params.set(key, value);
       } else {
@@ -40,7 +40,6 @@ const ProductFilters = ({
       {/* Categories */}
       <div>
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Categories</h3>
-
         <ul className="space-y-1">
           <li>
             <Link
@@ -72,6 +71,7 @@ const ProductFilters = ({
           ))}
         </ul>
       </div>
+
       {/* Price range */}
       <div>
         <h3 className="text-sm font-semibold text-gray-900 mb-3">
@@ -95,6 +95,35 @@ const ProductFilters = ({
           />
         </div>
       </div>
+
+      {/* Dynamic spec filters — rendered when a category page provides its specSchema */}
+      {specSchema && specSchema.length > 0 && (
+        <div className="space-y-4">
+          {specSchema
+            .filter(
+              (s) => s.filterable && s.type === "select" && s.options?.length,
+            )
+            .map((spec) => (
+              <div key={spec.key}>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                  {spec.label}
+                </h3>
+                <select
+                  defaultValue={searchParams.get(spec.key) ?? ""}
+                  onChange={(e) => updateParam(spec.key, e.target.value)}
+                  className="w-full text-sm border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">Any</option>
+                  {spec.options!.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 };

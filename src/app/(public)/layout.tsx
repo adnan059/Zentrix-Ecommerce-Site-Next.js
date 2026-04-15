@@ -8,6 +8,7 @@ export default async function PublicLayout({
   children: React.ReactNode;
 }) {
   const categories = await getAllCategories();
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar categories={categories} />

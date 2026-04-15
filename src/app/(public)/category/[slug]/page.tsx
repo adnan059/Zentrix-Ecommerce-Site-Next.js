@@ -4,8 +4,24 @@ import ProductSort from "@/components/products/product-sort";
 import Pagination from "@/components/shared/pagination";
 import { getAllCategories, getCategoryBySlug } from "@/lib/data/categories";
 import { getProducts } from "@/lib/data/products";
+import { ProductSortOption } from "@/types";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+// Allowed sort values — used to safely narrow the URL param
+const VALID_SORT_OPTIONS: ProductSortOption[] = [
+  "newest",
+  "price-asc",
+  "price-desc",
+  "rating",
+];
+
+function parseSortParam(raw: string | undefined): ProductSortOption {
+  if (raw && (VALID_SORT_OPTIONS as string[]).includes(raw)) {
+    return raw as ProductSortOption;
+  }
+  return "newest";
+}
 
 interface ICategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -48,12 +64,13 @@ export default async function CategoryPage({
 }: ICategoryPageProps) {
   const { slug } = await params;
   const sp = await searchParams;
-  const category = await getCategoryBySlug(slug);
 
+  const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
-  const page = Number(sp.page) || 1;
-  const sort = (sp.sort as any) || "newest";
+  const page = Math.max(1, Number(sp.page) || 1);
+  // ✅ No more "as any" — properly validated against the allowed union
+  const sort = parseSortParam(sp.sort);
   const minPrice = sp.minPrice ? Number(sp.minPrice) : undefined;
   const maxPrice = sp.maxPrice ? Number(sp.maxPrice) : undefined;
 
@@ -78,15 +95,17 @@ export default async function CategoryPage({
         <span className="mx-2">/</span>
         <span className="text-gray-900 font-medium">{category.name}</span>
       </nav>
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{category.name}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {totalCount} products found
+          {totalCount} product{totalCount !== 1 ? "s" : ""} found
         </p>
       </div>
 
       <div className="flex gap-8">
         <aside className="hidden lg:block w-56 shrink-0">
+          {/* ✅ allCategories is PlainCategory[] — fully type-safe for ProductFilters */}
           <ProductFilters
             categories={allCategories}
             activeCategory={slug}
@@ -96,6 +115,7 @@ export default async function CategoryPage({
 
         <div className="flex-1 min-w-0 space-y-6">
           <ProductSort />
+          {/* ✅ products is now PopulatedProduct[] — matches ProductGrid prop type */}
           <ProductGrid products={products} />
           {totalPages > 1 && (
             <Pagination currentPage={page} totalPages={totalPages} />

@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import ProductImages from "@/components/products/product-detail/product-images";
 import ProductInfo from "@/components/products/product-detail/product-info";
-
 import ProductGrid from "@/components/products/product-grid";
 import { getProductBySlug, getRelatedProducts } from "@/lib/data/products";
 import { getWishlistIds } from "@/lib/data/wishlist";
@@ -38,7 +36,6 @@ export const revalidate = 3600;
 export default async function ProductPage({ params }: IProductPageProps) {
   const { slug } = await params;
 
-  // Fetch product and session in parallel
   const [product, session] = await Promise.all([
     getProductBySlug(slug),
     auth(),
@@ -46,15 +43,16 @@ export default async function ProductPage({ params }: IProductPageProps) {
 
   if (!product) notFound();
 
-  const categoryId = (product.categoryId as any)?._id?.toString();
+  // ✅ product is PopulatedProduct — categoryId is IPopulatedCategory (plain object),
+  // so accessing ._id and .name is fully type-safe with no "as any" needed.
+  const categoryId = product.categoryId._id;
 
-  // Fetch related products and wishlist IDs in parallel
   const [relatedProducts, wishlistIds] = await Promise.all([
-    categoryId ? getRelatedProducts(categoryId, slug, 4) : Promise.resolve([]),
+    getRelatedProducts(categoryId, slug, 4),
     session?.user?.id ? getWishlistIds(session.user.id) : Promise.resolve([]),
   ]);
 
-  const isInWishlist = wishlistIds.includes(product._id.toString());
+  const isInWishlist = wishlistIds.includes(product._id);
   const isLoggedIn = !!session;
 
   // JSON-LD structured data
@@ -97,7 +95,8 @@ export default async function ProductPage({ params }: IProductPageProps) {
         <nav className="text-sm text-gray-500">
           <span>Home</span>
           <span className="mx-2">/</span>
-          <span>{(product.categoryId as any)?.name}</span>
+          {/* ✅ product.categoryId is IPopulatedCategory — .name is direct, no cast */}
+          <span>{product.categoryId.name}</span>
           <span className="mx-2">/</span>
           <span className="text-gray-900 font-medium line-clamp-1">
             {product.name}
@@ -124,7 +123,7 @@ export default async function ProductPage({ params }: IProductPageProps) {
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <tbody>
-                    {Array.from(Object.entries(product.variants[0].specs)).map(
+                    {Object.entries(product.variants[0].specs).map(
                       ([key, value], i) => (
                         <tr
                           key={key}
@@ -145,7 +144,7 @@ export default async function ProductPage({ params }: IProductPageProps) {
 
         {/* Reviews */}
         <div>
-          <ProductReviews productId={product._id.toString()} />
+          <ProductReviews productId={product._id} />
         </div>
 
         {/* Related products */}
@@ -154,6 +153,7 @@ export default async function ProductPage({ params }: IProductPageProps) {
             <h2 className="text-xl font-bold text-gray-900 mb-6">
               Related Products
             </h2>
+            {/* ✅ relatedProducts is now PopulatedProduct[] — matches ProductGrid prop type */}
             <ProductGrid products={relatedProducts} />
           </div>
         )}

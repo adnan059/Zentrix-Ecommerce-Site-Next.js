@@ -1,6 +1,7 @@
 import { SortOrder } from "mongoose";
 import { connectDB } from "../db/connect";
-import { IProduct, Product } from "../db/models/product.model";
+import { Product } from "../db/models/product.model";
+import { PopulatedProduct, ProductSortOption } from "@/types";
 import "../db/models/vendor.model";
 import "../db/models/category.model";
 
@@ -8,7 +9,7 @@ export interface IGetProductsOptions {
   categorySlug?: string;
   page?: number;
   limit?: number;
-  sort?: "newest" | "price-asc" | "price-desc" | "rating";
+  sort?: ProductSortOption;
   minPrice?: number;
   maxPrice?: number;
   brand?: string;
@@ -16,7 +17,7 @@ export interface IGetProductsOptions {
 }
 
 export interface IProductsResult {
-  products: IProduct[];
+  products: PopulatedProduct[];
   totalCount: number;
   totalPages: number;
   currentPage: number;
@@ -43,20 +44,16 @@ export async function getProducts(
   const query: Record<string, unknown> = { status: "published" };
 
   if (categorySlug) {
-    // Look up category ID from slug
     const { Category } = await import("@/lib/db/models/category.model");
     const category = await Category.findOne({ slug: categorySlug }).lean();
-
     if (category) query.categoryId = category._id;
   }
 
   if (minPrice !== undefined || maxPrice !== undefined) {
     query.basePrice = {};
-
     if (minPrice !== undefined) {
       (query.basePrice as Record<string, number>).$gte = minPrice;
     }
-
     if (maxPrice !== undefined) {
       (query.basePrice as Record<string, number>).$lte = maxPrice;
     }
@@ -72,7 +69,7 @@ export async function getProducts(
 
   /* ───────────────── sorting ───────────────── */
 
-  const sortMap: Record<string, Record<string, SortOrder>> = {
+  const sortMap: Record<ProductSortOption, Record<string, SortOrder>> = {
     newest: { createdAt: -1 },
     "price-asc": { basePrice: 1 },
     "price-desc": { basePrice: -1 },
@@ -80,22 +77,21 @@ export async function getProducts(
   };
 
   const sortQuery = sortMap[sort] ?? { createdAt: -1 };
-
   const skip = (page - 1) * limit;
 
-  const [products, totalCount] = await Promise.all([
+  const [rawProducts, totalCount] = await Promise.all([
     Product.find(query)
       .sort(sortQuery)
       .skip(skip)
       .limit(limit)
       .populate("categoryId", "name slug")
-      .populate("vendorId", "storeName storeSlug rating")
+      .populate("vendorId", "storeName storeSlug rating totalReviews")
       .lean(),
     Product.countDocuments(query),
   ]);
 
   return {
-    products: JSON.parse(JSON.stringify(products)),
+    products: JSON.parse(JSON.stringify(rawProducts)) as PopulatedProduct[],
     totalCount,
     totalPages: Math.ceil(totalCount / limit),
     currentPage: page,
@@ -104,7 +100,9 @@ export async function getProducts(
 
 /* ───────────────── fetch single product by slug ───────────────── */
 
-export async function getProductBySlug(slug: string): Promise<IProduct | null> {
+export async function getProductBySlug(
+  slug: string,
+): Promise<PopulatedProduct | null> {
   await connectDB();
   const product = await Product.findOne({ slug, status: "published" })
     .populate("categoryId", "name slug specSchema")
@@ -112,11 +110,14 @@ export async function getProductBySlug(slug: string): Promise<IProduct | null> {
     .lean();
 
   if (!product) return null;
-  return JSON.parse(JSON.stringify(product));
+  return JSON.parse(JSON.stringify(product)) as PopulatedProduct;
 }
 
 /* ───────────────── fetch featured products for home page ───────────────── */
-export async function getFeaturedProducts(limit = 8): Promise<IProduct[]> {
+
+export async function getFeaturedProducts(
+  limit = 8,
+): Promise<PopulatedProduct[]> {
   await connectDB();
   const products = await Product.find({
     status: "published",
@@ -125,9 +126,10 @@ export async function getFeaturedProducts(limit = 8): Promise<IProduct[]> {
     .sort({ createdAt: -1 })
     .limit(limit)
     .populate("categoryId", "name slug")
-    .populate("vendorId", "storeName storeSlug")
+    .populate("vendorId", "storeName storeSlug rating totalReviews")
     .lean();
-  return JSON.parse(JSON.stringify(products));
+
+  return JSON.parse(JSON.stringify(products)) as PopulatedProduct[];
 }
 
 /* ───────────────── fetch related products ───────────────── */
@@ -136,7 +138,7 @@ export async function getRelatedProducts(
   categoryId: string,
   excludeSlug: string,
   limit = 4,
-): Promise<IProduct[]> {
+): Promise<PopulatedProduct[]> {
   await connectDB();
   const products = await Product.find({
     categoryId,
@@ -146,8 +148,8 @@ export async function getRelatedProducts(
     .sort({ rating: -1 })
     .limit(limit)
     .populate("categoryId", "name slug")
-    .populate("vendorId", "storeName storeSlug")
+    .populate("vendorId", "storeName storeSlug rating totalReviews")
     .lean();
 
-  return JSON.parse(JSON.stringify(products));
+  return JSON.parse(JSON.stringify(products)) as PopulatedProduct[];
 }

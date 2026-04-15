@@ -1,7 +1,7 @@
 "use client";
-import { ICategory } from "@/lib/db/models/category.model";
-import { Cpu, Menu, User } from "lucide-react";
 
+import { PlainCategory } from "@/types";
+import { Cpu, Menu, User } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -11,14 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
-//import { logoutAction } from "@/lib/actions/auth.actions";
 import SearchBar from "./search-bar";
 import CartIcon from "./cart-icon";
-
 import { useSession, signOut } from "next-auth/react";
 
 interface INavbarProps {
-  categories: ICategory[];
+  categories: PlainCategory[];
 }
 
 const Navbar = ({ categories }: INavbarProps) => {

@@ -11,6 +11,13 @@ export type OrderStatus =
 export type ProductStatus = "draft" | "published" | "archived";
 export type PaymentStatus = "unpaid" | "paid" | "refunded";
 
+// ─── Sort options for getProducts ─────────────────────────────────────────────
+export type ProductSortOption =
+  | "newest"
+  | "price-asc"
+  | "price-desc"
+  | "rating";
+
 // ─── This is THE variant type used everywhere in the UI layer.
 // It uses string for _id because after .lean() all ObjectIds become strings.
 // Never use IVariant (Mongoose subdocument) in components.
@@ -69,13 +76,36 @@ export type PlainOrder = Omit<
   >;
 };
 
+// ─── PlainCategory: the plain object shape returned by .lean() on Category.
+// All components that display/list categories must use this type, never ICategory.
+export type PlainCategory = {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  specSchema: Array<{
+    key: string;
+    label: string;
+    type: "text" | "number" | "select";
+    options?: string[];
+    unit?: string;
+    filterable: boolean;
+  }>;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PlainWishlistProduct = {
   _id: string;
   name: string;
   slug: string;
   images: string[];
   variants: Array<{ price: number; [key: string]: unknown }>;
-  status: "draft" | "published" | "archived";
+  // ✅ "status" not "isActive" — matches the actual ProductSchema field
+  status: ProductStatus;
 };
 
 export type PlainReview = {

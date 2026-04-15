@@ -1,25 +1,26 @@
+import { PlainCategory } from "@/types";
 import { connectDB } from "../db/connect";
-import { Category, ICategory } from "../db/models/category.model";
+import { Category } from "../db/models/category.model";
 
 /* ───────────────── fetching all categories ───────────────── */
 
-export async function getAllCategories(): Promise<ICategory[]> {
+export async function getAllCategories(): Promise<PlainCategory[]> {
   await connectDB();
   const categories = await Category.find({ isActive: true })
     .sort({ sortOrder: 1 })
     .lean();
-  return JSON.parse(JSON.stringify(categories));
+  return JSON.parse(JSON.stringify(categories)) as PlainCategory[];
 }
 
 /* ───────────────── fetching category by slug ───────────────── */
 
 export async function getCategoryBySlug(
   slug: string,
-): Promise<ICategory | null> {
+): Promise<PlainCategory | null> {
   await connectDB();
   const category = await Category.findOne({ slug, isActive: true }).lean();
 
   if (!category) return null;
 
-  return JSON.parse(JSON.stringify(category));
+  return JSON.parse(JSON.stringify(category)) as PlainCategory;
 }

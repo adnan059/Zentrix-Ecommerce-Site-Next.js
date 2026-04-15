@@ -11,12 +11,15 @@ export const getWishList = async (
     .populate({
       path: "productIds",
       model: Product,
-      select: "_id name slug images variants isActive",
+      // ✅ "status" not "isActive" — "isActive" does not exist on ProductSchema
+      select: "_id name slug images variants status",
       match: { status: "published" },
     })
     .lean();
 
-  return JSON.parse(JSON.stringify(wishlist?.productIds ?? []));
+  return JSON.parse(
+    JSON.stringify(wishlist?.productIds ?? []),
+  ) as PlainWishlistProduct[];
 };
 
 export const getWishlistIds = async (userId: string): Promise<string[]> => {

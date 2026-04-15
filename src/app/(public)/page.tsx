@@ -56,7 +56,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* categories */}
+      {/* Categories */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
           Shop by Category
@@ -73,7 +73,7 @@ export default async function HomePage() {
                   unoptimized
                   src={
                     category.image ??
-                    `https://dummyimage.com/400x400/e2e8f0/475569&text=${category.name}`
+                    `https://dummyimage.com/400x400/e2e8f0/475569&text=${encodeURIComponent(category.name)}`
                   }
                   alt={category.name}
                   fill
@@ -89,7 +89,7 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Products */}
-      {featuredProducts.length > 0 && (
+      {featuredProducts.length > 0 ? (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">
@@ -102,12 +102,10 @@ export default async function HomePage() {
               View all →
             </Link>
           </div>
+          {/* ✅ featuredProducts is now PopulatedProduct[] — matches ProductGrid prop type */}
           <ProductGrid products={featuredProducts} />
         </section>
-      )}
-      {/* Empty state — shown when no featured products yet */}
-
-      {featuredProducts.length === 0 && (
+      ) : (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-10">
           <p className="text-gray-400">
             No featured products yet. Add some products to get started.
