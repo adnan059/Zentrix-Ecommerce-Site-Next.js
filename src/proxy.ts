@@ -10,6 +10,10 @@ const buyerRoutes = [
   "/cart/checkout",
 ];
 
+// These /vendor/* paths require login but NOT the vendor role.
+// Any authenticated user (buyer applying, or pending vendor) can access them.
+const vendorPublicRoutes = ["/vendor/register", "/vendor/pending"];
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
@@ -17,18 +21,28 @@ export default auth((req) => {
   const isVendorRoute = pathname.startsWith("/vendor");
   const isAdminRoute = pathname.startsWith("/admin");
   const isBuyerRoute = buyerRoutes.some((r) => pathname.startsWith(r));
+  const isVendorPublicRoute = vendorPublicRoutes.some((r) =>
+    pathname.startsWith(r),
+  );
 
+  // Step 1: Require login for all protected routes
   if ((isVendorRoute || isAdminRoute || isBuyerRoute) && !session) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
+  // Step 2: Admin-only routes
   if (isAdminRoute && session?.user.role !== "admin") {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  if (isVendorRoute && session?.user.role !== "vendor") {
+  // Step 3: Vendor-only routes — skip the public vendor routes
+  if (
+    isVendorRoute &&
+    !isVendorPublicRoute &&
+    session?.user.role !== "vendor"
+  ) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 

@@ -3,6 +3,7 @@ import { Vendor } from "../db/models/vendor.model";
 import { Order } from "../db/models/order.model";
 import { Product } from "../db/models/product.model";
 import "../db/models/user.model";
+import { Types } from "mongoose";
 import {
   PlainVendor,
   PlainProduct,
@@ -95,12 +96,27 @@ export async function getVendorOrders(
 }> {
   await connectDB();
 
-  const matchQuery: Record<string, unknown> = {
-    "items.vendorId": vendorId,
-    paymentStatus: "paid",
-  };
+  const vendorObjectId = new Types.ObjectId(vendorId);
+
+  // Build the match query using $elemMatch when status filter is active
+  // to ensure BOTH conditions apply to the SAME array element
+  let matchQuery: Record<string, unknown>;
+
   if (status && status !== "all") {
-    matchQuery["items.status"] = status;
+    matchQuery = {
+      items: {
+        $elemMatch: {
+          vendorId: vendorObjectId,
+          status,
+        },
+      },
+      paymentStatus: "paid",
+    };
+  } else {
+    matchQuery = {
+      "items.vendorId": vendorObjectId,
+      paymentStatus: "paid",
+    };
   }
 
   const skip = (page - 1) * limit;
@@ -162,7 +178,7 @@ export async function getVendorOrderById(
 
   const order = await Order.findOne({
     _id: orderId,
-    "items.vendorId": vendorId,
+    "items.vendorId": new Types.ObjectId(vendorId),
     paymentStatus: "paid",
   })
     .populate("userId", "name email")
@@ -208,7 +224,7 @@ export async function getVendorEarnings(
   await connectDB();
 
   const orders = await Order.find({
-    "items.vendorId": vendorId,
+    "items.vendorId": new Types.ObjectId(vendorId),
     paymentStatus: "paid",
   })
     .select("items")
@@ -216,8 +232,10 @@ export async function getVendorEarnings(
 
   let totalRevenue = 0;
   let totalItemsSold = 0;
+  let ordersWithSales = 0;
 
   for (const order of orders) {
+    let orderHasSale = false;
     for (const item of order.items) {
       if (
         item.vendorId.toString() === vendorId &&
@@ -225,8 +243,10 @@ export async function getVendorEarnings(
       ) {
         totalRevenue += item.subtotal;
         totalItemsSold += item.quantity;
+        orderHasSale = true;
       }
     }
+    if (orderHasSale) ordersWithSales++;
   }
 
   const platformFee = (totalRevenue * commissionRate) / 100;
@@ -236,7 +256,7 @@ export async function getVendorEarnings(
     totalRevenue,
     platformFee,
     netEarnings,
-    totalOrders: orders.length,
+    totalOrders: ordersWithSales,
     totalItemsSold,
     commissionRate,
   };
@@ -252,8 +272,12 @@ export async function getVendorDashboardStats(vendorId: string) {
       Product.countDocuments({ vendorId }),
       Product.countDocuments({ vendorId, status: "published" }),
       Order.countDocuments({
-        "items.vendorId": vendorId,
-        "items.status": "pending",
+        items: {
+          $elemMatch: {
+            vendorId: new Types.ObjectId(vendorId),
+            status: "pending",
+          },
+        },
         paymentStatus: "paid",
       }),
       Vendor.findById(vendorId)

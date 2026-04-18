@@ -4,6 +4,7 @@ import { getAllCategories } from "@/lib/data/categories";
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import ProductForm from "@/components/vendor/product-form";
+
 export const metadata: Metadata = { title: "Edit Product - Zentrix Vendor" };
 
 export default async function EditProductPage({

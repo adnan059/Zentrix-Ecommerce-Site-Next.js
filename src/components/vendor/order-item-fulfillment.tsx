@@ -6,11 +6,15 @@ import { useAction } from "next-safe-action/hooks";
 import { updateOrderItemStatusAction } from "@/lib/actions/vendor-order.actions";
 import { VendorOrderItem, OrderStatus } from "@/types";
 
-const statusOptions: { value: OrderStatus; label: string; color: string }[] = [
-  { value: "processing", label: "Processing", color: "text-blue-600" },
-  { value: "shipped", label: "Shipped", color: "text-purple-600" },
-  { value: "delivered", label: "Delivered", color: "text-green-600" },
-  { value: "cancelled", label: "Cancelled", color: "text-red-500" },
+// Narrower type that matches the fulfillmentSchema exactly —
+// vendors cannot set status back to "pending", that's the system default.
+type FulfillmentStatus = "processing" | "shipped" | "delivered" | "cancelled";
+
+const statusOptions: { value: FulfillmentStatus; label: string }[] = [
+  { value: "processing", label: "Processing" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 const statusColors: Record<string, string> = {
@@ -21,6 +25,13 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700",
 };
 
+// If item.status is "pending", default the select to "processing"
+// since that's the first action a vendor takes.
+function toFulfillmentStatus(status: OrderStatus): FulfillmentStatus {
+  if (status === "pending") return "processing";
+  return status as FulfillmentStatus;
+}
+
 export default function OrderItemFulfillment({
   orderId,
   item,
@@ -28,8 +39,8 @@ export default function OrderItemFulfillment({
   orderId: string;
   item: VendorOrderItem;
 }) {
-  const [selectedStatus, setSelectedStatus] = useState<OrderStatus>(
-    item.status as OrderStatus,
+  const [selectedStatus, setSelectedStatus] = useState<FulfillmentStatus>(
+    toFulfillmentStatus(item.status as OrderStatus),
   );
   const [trackingNumber, setTrackingNumber] = useState(
     item.trackingNumber ?? "",
@@ -45,15 +56,16 @@ export default function OrderItemFulfillment({
     execute({
       orderId,
       itemId: item._id,
-      status: selectedStatus,
+      status: selectedStatus, // ✅ FulfillmentStatus matches schema exactly
       trackingNumber: trackingNumber || undefined,
     });
   };
 
   const hasChanged =
-    selectedStatus !== item.status ||
+    selectedStatus !== toFulfillmentStatus(item.status as OrderStatus) ||
     trackingNumber !== (item.trackingNumber ?? "");
 
+  // Terminal states: no further action needed
   if (item.status === "delivered" || item.status === "cancelled") {
     return (
       <div className="mt-3 flex items-center gap-2">
@@ -73,15 +85,17 @@ export default function OrderItemFulfillment({
 
   return (
     <div className="mt-3 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+      {/* Current status pill */}
       <span
         className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[item.status]}`}
       >
         {item.status}
       </span>
 
+      {/* Status selector */}
       <select
         value={selectedStatus}
-        onChange={(e) => setSelectedStatus(e.target.value as OrderStatus)}
+        onChange={(e) => setSelectedStatus(e.target.value as FulfillmentStatus)}
         className="border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
       >
         {statusOptions.map((opt) => (
@@ -91,6 +105,7 @@ export default function OrderItemFulfillment({
         ))}
       </select>
 
+      {/* Tracking number input — shown when shipping or already has one */}
       {(selectedStatus === "shipped" || item.trackingNumber) && (
         <input
           value={trackingNumber}
@@ -100,6 +115,7 @@ export default function OrderItemFulfillment({
         />
       )}
 
+      {/* Update button — only visible when something changed */}
       {hasChanged && (
         <button
           onClick={handleUpdate}

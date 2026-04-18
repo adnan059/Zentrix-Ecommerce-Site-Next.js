@@ -8,6 +8,15 @@ import { connectDB } from "../db/connect";
 import { Product } from "../db/models/product.model";
 import { generateSlug } from "../utils/format";
 
+/* ─── Helper: safely convert compareAtPrice ────────────── */
+
+function sanitizeCompareAtPrice(
+  val: number | "" | undefined,
+): number | undefined {
+  if (val === undefined || val === "" || val === 0) return undefined;
+  return Number(val);
+}
+
 /* ─── Create product ────────────────────────────────────── */
 
 export const createProductAction = vendorActionClient
@@ -31,7 +40,7 @@ export const createProductAction = vendorActionClient
       basePrice,
       variants: parsedInput.variants.map((v) => ({
         ...v,
-        compareAtPrice: v.compareAtPrice || undefined,
+        compareAtPrice: sanitizeCompareAtPrice(v.compareAtPrice),
         specs: v.specs ?? {},
       })),
     });
@@ -62,7 +71,7 @@ export const updateProductAction = vendorActionClient
       basePrice,
       variants: data.variants.map((v) => ({
         ...v,
-        compareAtPrice: v.compareAtPrice || undefined,
+        compareAtPrice: sanitizeCompareAtPrice(v.compareAtPrice),
         specs: v.specs ?? {},
       })),
     });
