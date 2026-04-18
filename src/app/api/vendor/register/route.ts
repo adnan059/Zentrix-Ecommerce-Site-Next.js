@@ -27,5 +27,5 @@ export async function POST(req: NextRequest) {
     vendorId: vendor._id,
   });
 
-  return NextResponse.json({ sucess: true });
+  return NextResponse.json({ success: true });
 }
