@@ -11,18 +11,14 @@ export type OrderStatus =
 export type ProductStatus = "draft" | "published" | "archived";
 export type PaymentStatus = "unpaid" | "paid" | "refunded";
 
-// ─── Sort options for getProducts ─────────────────────────────────────────────
 export type ProductSortOption =
   | "newest"
   | "price-asc"
   | "price-desc"
   | "rating";
 
-// ─── This is THE variant type used everywhere in the UI layer.
-// It uses string for _id because after .lean() all ObjectIds become strings.
-// Never use IVariant (Mongoose subdocument) in components.
 export interface IProductVariant {
-  _id: string; // ✅ string, not ObjectId — this is the post-.lean() shape
+  _id: string;
   label: string;
   sku: string;
   price: number;
@@ -76,8 +72,6 @@ export type PlainOrder = Omit<
   >;
 };
 
-// ─── PlainCategory: the plain object shape returned by .lean() on Category.
-// All components that display/list categories must use this type, never ICategory.
 export type PlainCategory = {
   _id: string;
   name: string;
@@ -104,7 +98,7 @@ export type PlainWishlistProduct = {
   slug: string;
   images: string[];
   variants: Array<{ price: number; [key: string]: unknown }>;
-  // ✅ "status" not "isActive" — matches the actual ProductSchema field
+
   status: ProductStatus;
 };
 
@@ -143,8 +137,6 @@ export type PlainUser = {
   hasPassword: boolean;
 };
 
-// ─── Populated sub-types (post-.lean() + .populate() shapes) ──────────────
-
 export interface IPopulatedVendor {
   _id: string;
   storeName: string;
@@ -159,8 +151,6 @@ export interface IPopulatedCategory {
   slug: string;
 }
 
-// ─── PopulatedProduct: the plain object shape returned by .lean() + .populate()
-// All components that display products must use this type, never IProduct.
 export type PopulatedProduct = {
   _id: string;
   name: string;
@@ -178,7 +168,93 @@ export type PopulatedProduct = {
   isFeatured: boolean;
   createdAt: string;
   updatedAt: string;
-  variants: IProductVariant[]; // ✅ uses IProductVariant (string _id), not IVariant (ObjectId)
+  variants: IProductVariant[];
   vendorId: IPopulatedVendor;
   categoryId: IPopulatedCategory;
+};
+
+export type PlainVendor = {
+  _id: string;
+  userId: string;
+  storeName: string;
+  storeSlug: string;
+  description?: string;
+  logo?: string;
+  banner?: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  status: VendorStatus;
+  rating: number;
+  totalReviews: number;
+  totalSales: number;
+  commissionRate: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlainProduct = {
+  _id: string;
+  vendorId: string;
+  categoryId: string | IPopulatedCategory;
+  name: string;
+  slug: string;
+  description: string;
+  brand: string;
+  images: string[];
+  variants: IProductVariant[];
+  basePrice: number;
+  status: ProductStatus;
+  isFeatured: boolean;
+  rating: number;
+  totalReviews: number;
+  totalSales: number;
+  tags: string[];
+  warranty?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VendorOrderItem = {
+  _id: string;
+  productId: string;
+  variantId: string;
+  name: string;
+  variantLabel: string;
+  sku: string;
+  image: string;
+  price: number;
+  quantity: number;
+  subtotal: number;
+  status: OrderStatus;
+  trackingNumber?: string;
+};
+
+export type VendorOrder = {
+  _id: string;
+  userId: { _id: string; name: string; email: string } | string;
+  items: VendorOrderItem[]; // only this vendor's items
+  shippingAddress: {
+    fullName: string;
+    phone: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    district: string;
+    postalCode?: string;
+  };
+  total: number;
+  paymentStatus: PaymentStatus;
+  paymentMethod: "aamarpay" | "cod";
+  createdAt: string;
+};
+
+export type VendorEarningsSummary = {
+  totalRevenue: number;
+  platformFee: number;
+  netEarnings: number;
+  totalOrders: number;
+  totalItemsSold: number;
+  commissionRate: number;
 };
