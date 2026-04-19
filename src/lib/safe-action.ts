@@ -1,3 +1,4 @@
+// src/lib/safe-action.ts
 import { auth } from "@/auth";
 import { createSafeActionClient } from "next-safe-action";
 import { connectDB } from "./db/connect";
@@ -39,6 +40,20 @@ export const vendorActionClient = actionClient.use(async ({ next }) => {
       user: session.user,
       vendorId: vendor._id.toString(),
       commissionRate: vendor.commissionRate,
+    },
+  });
+});
+
+export const adminActionClient = actionClient.use(async ({ next }) => {
+  const session = await auth();
+
+  if (!session?.user?.id) throw new Error("You must be logged in");
+  if (session.user.role !== "admin") throw new Error("Admin access required");
+
+  return next({
+    ctx: {
+      userId: session.user.id,
+      user: session.user,
     },
   });
 });
