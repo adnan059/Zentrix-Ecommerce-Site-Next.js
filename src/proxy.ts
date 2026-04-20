@@ -1,49 +1,98 @@
 // src/proxy.ts
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
-const buyerRoutes = [
-  "/account",
-  "/orders",
-  "/wishlist",
-  "/reviews",
-  "/cart/checkout",
-];
+const AUTH_ROUTES = ["/login", "/register"];
+const PROTECTED_BUYER = ["/orders", "/account", "/wishlist", "/reviews"];
+const VENDOR_PREFIX = "/vendor";
+const ADMIN_PREFIX = "/admin";
 
-// These /vendor/* paths require login but NOT the vendor role.
-// Any authenticated user (buyer applying, or pending vendor) can access them.
-const vendorPublicRoutes = ["/vendor/register", "/vendor/pending"];
+export default auth(async function middleware(
+  req: NextRequest & { auth: unknown },
+) {
+  const { nextUrl, headers } = req;
+  const session = (
+    req as unknown as { auth: { user?: { role?: string } } | null }
+  ).auth;
+  const ip = getClientIp(headers);
 
-export default auth((req) => {
-  const { pathname } = req.nextUrl;
-  const session = req.auth;
-
-  const isVendorRoute = pathname.startsWith("/vendor");
-  const isAdminRoute = pathname.startsWith("/admin");
-  const isBuyerRoute = buyerRoutes.some((r) => pathname.startsWith(r));
-  const isVendorPublicRoute = vendorPublicRoutes.some((r) =>
-    pathname.startsWith(r),
-  );
-
-  // Step 1: Require login for all protected routes
-  if ((isVendorRoute || isAdminRoute || isBuyerRoute) && !session) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+  // ── Rate-limit NextAuth POST endpoints (login / register callbacks) ────
+  if (nextUrl.pathname.startsWith("/api/auth/") && req.method === "POST") {
+    const rl = rateLimit({ key: `auth:${ip}`, limit: 10, windowMs: 60_000 });
+    if (!rl.success) {
+      return new NextResponse(
+        JSON.stringify({ error: "Too many attempts. Please try again later." }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        },
+      );
+    }
   }
 
-  // Step 2: Admin-only routes
-  if (isAdminRoute && session?.user.role !== "admin") {
-    return NextResponse.redirect(new URL("/", req.url));
+  // ── Redirect authenticated users away from auth pages ──────────────────
+  if (AUTH_ROUTES.some((r) => nextUrl.pathname === r)) {
+    if (session?.user) {
+      return NextResponse.redirect(new URL("/", nextUrl));
+    }
+    return NextResponse.next();
   }
 
-  // Step 3: Vendor-only routes — skip the public vendor routes
-  if (
-    isVendorRoute &&
-    !isVendorPublicRoute &&
-    session?.user.role !== "vendor"
-  ) {
-    return NextResponse.redirect(new URL("/", req.url));
+  // ── Protect buyer routes ────────────────────────────────────────────────
+  if (PROTECTED_BUYER.some((r) => nextUrl.pathname.startsWith(r))) {
+    if (!session?.user) {
+      const loginUrl = new URL("/login", nextUrl);
+      loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // ── Protect vendor routes ───────────────────────────────────────────────
+  if (nextUrl.pathname.startsWith(VENDOR_PREFIX)) {
+    if (!session?.user) {
+      const loginUrl = new URL("/login", nextUrl);
+      loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const role = session.user?.role as string | undefined;
+
+    // Pending page is accessible to any logged-in user
+    if (nextUrl.pathname === "/vendor/pending") {
+      return NextResponse.next();
+    }
+
+    // Register page accessible to buyers (not yet vendors)
+    if (nextUrl.pathname === "/vendor/register") {
+      if (role === "vendor" || role === "admin") {
+        return NextResponse.redirect(new URL("/vendor/dashboard", nextUrl));
+      }
+      return NextResponse.next();
+    }
+
+    // Dashboard and sub-pages require vendor or admin role
+    if (role !== "vendor" && role !== "admin") {
+      return NextResponse.redirect(new URL("/vendor/pending", nextUrl));
+    }
+  }
+
+  // ── Protect admin routes ────────────────────────────────────────────────
+  if (nextUrl.pathname.startsWith(ADMIN_PREFIX)) {
+    if (!session?.user) {
+      const loginUrl = new URL("/login", nextUrl);
+      loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const role = session.user?.role as string | undefined;
+    if (role !== "admin") {
+      return NextResponse.redirect(new URL("/", nextUrl));
+    }
   }
 
   return NextResponse.next();
@@ -51,12 +100,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    "/account/:path*",
-    "/orders/:path*",
-    "/wishlist/:path*",
-    "/reviews/:path*",
-    "/cart/checkout/:path*",
-    "/vendor/:path*",
-    "/admin/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

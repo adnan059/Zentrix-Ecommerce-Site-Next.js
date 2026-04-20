@@ -1,16 +1,13 @@
 "use server";
-
+// src/lib/actions/auth.actions.ts
 import { actionClient } from "@/lib/safe-action";
-
 import { loginSchema, registerSchema } from "@/lib/validations/auth.schema";
-
 import { connectDB } from "@/lib/db/connect";
-
 import bcrypt from "bcryptjs";
-
 import { AuthError } from "next-auth";
 import { User } from "../db/models/user.model";
 import { signIn, signOut } from "@/auth";
+import { sendWelcomeEmail } from "@/lib/email/send";
 
 /* ───────────────── register user ───────────────── */
 
@@ -33,6 +30,9 @@ export const registerAction = actionClient
       password: hashedPassword,
       role: "buyer",
     });
+
+    // Fire-and-forget — do not await so registration is not blocked by email
+    void sendWelcomeEmail({ to: parsedInput.email, name: parsedInput.name });
 
     return { success: true, message: "Account created successfully" };
   });

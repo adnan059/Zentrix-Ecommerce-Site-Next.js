@@ -1,5 +1,7 @@
+// src/app/api/search/suggestions/route.ts
 import { connectDB } from "@/lib/db/connect";
 import { Product } from "@/lib/db/models/product.model";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 function escapeRegex(str: string): string {
@@ -7,6 +9,24 @@ function escapeRegex(str: string): string {
 }
 
 export async function GET(req: NextRequest) {
+  // 30 requests per minute per IP
+  const ip = getClientIp(req.headers);
+  const rl = rateLimit({ key: `search:${ip}`, limit: 30, windowMs: 60_000 });
+
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          "X-RateLimit-Limit": "30",
+          "X-RateLimit-Remaining": "0",
+        },
+      },
+    );
+  }
+
   const query = req.nextUrl.searchParams.get("q")?.trim();
 
   if (!query || query.length < 2 || query.length > 100) {

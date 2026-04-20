@@ -1,6 +1,5 @@
 "use server";
 // src/lib/actions/admin.actions.ts
-
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { adminActionClient } from "../safe-action";
@@ -9,6 +8,10 @@ import { Vendor } from "../db/models/vendor.model";
 import { User } from "../db/models/user.model";
 import { Product } from "../db/models/product.model";
 import { Review } from "../db/models/review.model";
+import {
+  sendVendorApprovalEmail,
+  sendVendorRejectionEmail,
+} from "@/lib/email/send";
 
 /* ─── Approve vendor ──────────────────────────────────────────────────────── */
 
@@ -26,6 +29,13 @@ export const approveVendorAction = adminActionClient
 
     await User.findByIdAndUpdate(vendor.userId, { role: "vendor" });
 
+    const user = await User.findById(vendor.userId).select("name").lean();
+    void sendVendorApprovalEmail({
+      to: vendor.email,
+      vendorName: user?.name ?? vendor.storeName,
+      storeName: vendor.storeName,
+    });
+
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${parsedInput.vendorId}`);
     return { success: true };
@@ -34,7 +44,12 @@ export const approveVendorAction = adminActionClient
 /* ─── Suspend vendor ──────────────────────────────────────────────────────── */
 
 export const suspendVendorAction = adminActionClient
-  .inputSchema(z.object({ vendorId: z.string().min(1) }))
+  .inputSchema(
+    z.object({
+      vendorId: z.string().min(1),
+      reason: z.string().optional(),
+    }),
+  )
   .action(async ({ parsedInput }) => {
     await connectDB();
 
@@ -46,6 +61,14 @@ export const suspendVendorAction = adminActionClient
     if (!vendor) throw new Error("Vendor not found");
 
     await User.findByIdAndUpdate(vendor.userId, { role: "buyer" });
+
+    const user = await User.findById(vendor.userId).select("name").lean();
+    void sendVendorRejectionEmail({
+      to: vendor.email,
+      vendorName: user?.name ?? vendor.storeName,
+      storeName: vendor.storeName,
+      reason: parsedInput.reason,
+    });
 
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${parsedInput.vendorId}`);
@@ -67,6 +90,13 @@ export const reactivateVendorAction = adminActionClient
     if (!vendor) throw new Error("Vendor not found");
 
     await User.findByIdAndUpdate(vendor.userId, { role: "vendor" });
+
+    const user = await User.findById(vendor.userId).select("name").lean();
+    void sendVendorApprovalEmail({
+      to: vendor.email,
+      vendorName: user?.name ?? vendor.storeName,
+      storeName: vendor.storeName,
+    });
 
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${parsedInput.vendorId}`);
@@ -201,7 +231,6 @@ export const approveReviewAction = adminActionClient
     );
     if (!review) throw new Error("Review not found");
 
-    // Recalculate product rating from all approved reviews
     const approvedReviews = await Review.find({
       productId: review.productId,
       isApproved: true,
@@ -234,7 +263,6 @@ export const deleteReviewAction = adminActionClient
     const review = await Review.findByIdAndDelete(parsedInput.reviewId);
     if (!review) throw new Error("Review not found");
 
-    // Recalculate product rating after deletion
     const approvedReviews = await Review.find({
       productId: review.productId,
       isApproved: true,
