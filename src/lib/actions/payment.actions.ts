@@ -1,6 +1,5 @@
 "use server";
 import { z } from "zod";
-import https from "https";
 
 import { authActionClient } from "../safe-action";
 import { connectDB } from "../db/connect";
@@ -105,18 +104,9 @@ export const initiateAamarpayPayment = authActionClient
       type: "json",
     };
 
-    // SAFE FIX: rejectUnauthorized is disabled ONLY for sandbox (expired cert on
-    // AamarPay's sandbox server is their problem, not ours). The httpsAgent is
-    // scoped to this single axios call — it does NOT affect any other request,
-    // global Node.js TLS settings, or the live payment flow.
-    const axiosConfig = isLive
-      ? { headers: { "Content-Type": "application/json" } }
-      : {
-          headers: { "Content-Type": "application/json" },
-          httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-        };
-
-    const { data } = await axios.post(apiUrl, payload, axiosConfig);
+    const { data } = await axios.post(apiUrl, payload, {
+      headers: { "Content-Type": "application/json" },
+    });
 
     if (data?.result !== "true" || !data?.payment_url) {
       await Order.findByIdAndDelete(order._id);
