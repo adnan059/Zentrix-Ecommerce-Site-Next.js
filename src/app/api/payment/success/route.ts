@@ -11,6 +11,13 @@ import {
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
+// POST→redirect must use 303 See Other so the browser follows with GET.
+// NextResponse.redirect() defaults to 302 which causes browsers to re-POST
+// the result page, returning a 405 Method Not Allowed.
+function redirect303(url: string) {
+  return NextResponse.redirect(url, { status: 303 });
+}
+
 function groupItemsByVendor<T extends { vendorId: unknown }>(
   items: T[],
 ): Map<string, T[]> {
@@ -35,7 +42,7 @@ export async function POST(req: NextRequest) {
     const payStatus = formData.get("pay_status") as string;
 
     if (statusCode !== "2" || payStatus !== "Successful") {
-      return NextResponse.redirect(`${appUrl}/payment/result?status=failed`);
+      return redirect303(`${appUrl}/payment/result?status=failed`);
     }
 
     const isLive = process.env.AAMARPAY_IS_LIVE === "true";
@@ -53,7 +60,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (verification?.status_code !== "2") {
-      return NextResponse.redirect(`${appUrl}/payment/result?status=failed`);
+      return redirect303(`${appUrl}/payment/result?status=failed`);
     }
 
     await connectDB();
@@ -74,11 +81,11 @@ export async function POST(req: NextRequest) {
     if (!updatedOrder) {
       const existingOrder = await Order.findById(tranId).select("_id").lean();
       if (existingOrder) {
-        return NextResponse.redirect(
+        return redirect303(
           `${appUrl}/payment/result?status=success&orderId=${existingOrder._id}`,
         );
       }
-      return NextResponse.redirect(`${appUrl}/payment/result?status=failed`);
+      return redirect303(`${appUrl}/payment/result?status=failed`);
     }
 
     for (const item of updatedOrder.items) {
@@ -147,11 +154,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.redirect(
+    return redirect303(
       `${appUrl}/payment/result?status=success&orderId=${updatedOrder._id}`,
     );
   } catch (error) {
     console.error("aamarpay success error:", error);
-    return NextResponse.redirect(`${appUrl}/payment/result?status=failed`);
+    return redirect303(`${appUrl}/payment/result?status=failed`);
   }
 }

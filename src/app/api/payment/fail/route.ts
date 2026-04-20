@@ -1,6 +1,13 @@
+// src/app/api/payment/fail/route.ts
 import { connectDB } from "@/lib/db/connect";
 import { Order } from "@/lib/db/models/order.model";
 import { NextRequest, NextResponse } from "next/server";
+
+// 303 See Other forces the browser to follow the redirect with GET.
+// Default 302 causes browsers to re-POST the result page → 405.
+function redirect303(url: string) {
+  return NextResponse.redirect(url, { status: 303 });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,9 +21,9 @@ export async function POST(req: NextRequest) {
       paymentStatus: "unpaid",
     });
   } catch (error) {
-    console.log("AAMAR_PAY_FAIL_ERROR: ", error);
+    console.error("AAMAR_PAY_FAIL_ERROR: ", error);
   }
-  return NextResponse.redirect(
+  return redirect303(
     `${process.env.NEXT_PUBLIC_APP_URL!}/payment/result?status=failed`,
   );
 }
