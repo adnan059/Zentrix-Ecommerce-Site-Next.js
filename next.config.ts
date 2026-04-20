@@ -4,8 +4,8 @@ import type { NextConfig } from "next";
 const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  font-src 'self' https://fonts.gstatic.com;
+  style-src 'self' 'unsafe-inline';
+  font-src 'self' data:;
   img-src 'self' data: blob: https://res.cloudinary.com https://dummyimage.com https://lh3.googleusercontent.com;
   connect-src 'self' https://api.cloudinary.com https://sandbox.aamarpay.com https://secure.aamarpay.com;
   frame-src 'none';

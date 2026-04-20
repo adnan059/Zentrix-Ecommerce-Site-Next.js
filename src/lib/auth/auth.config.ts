@@ -1,14 +1,13 @@
+// src/lib/auth/auth.config.ts
 import type { NextAuthConfig } from "next-auth";
-
 import Credentials from "next-auth/providers/credentials";
-
 import Google from "next-auth/providers/google";
-
 import bcrypt from "bcryptjs";
 import { loginSchema } from "../validations/auth.schema";
 import { connectDB } from "../db/connect";
 import { User } from "../db/models/user.model";
 import { UserRole } from "@/types";
+import { sendWelcomeEmail } from "@/lib/email/send";
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -55,8 +54,11 @@ export const authConfig: NextAuthConfig = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         await connectDB();
+
         let dbUser = await User.findOne({ email: user.email }).lean();
+
         if (!dbUser) {
+          // Brand-new Google user — create account then send welcome email
           await User.create({
             name: user.name ?? undefined,
             email: user.email ?? undefined,
@@ -64,7 +66,13 @@ export const authConfig: NextAuthConfig = {
             emailVerified: new Date(),
             role: "buyer",
           });
+
           dbUser = await User.findOne({ email: user.email }).lean();
+
+          // Fire-and-forget — do not block the sign-in flow
+          if (user.email && user.name) {
+            void sendWelcomeEmail({ to: user.email, name: user.name });
+          }
         }
 
         if (dbUser) {
